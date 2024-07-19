@@ -405,6 +405,12 @@ JSONValue parseValue(ParseCursor& pc)
 
 JSONValue parseJson(std::string text)
 {
+	ParseCursor pc(std::move(text));
+	return parseValue(pc);
+}
+
+JSONValue parseJsonLocaleSafe(std::string text)
+{
 	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
 	std::setlocale(LC_ALL, "C");
 	try
@@ -536,6 +542,13 @@ void encodeJsonValue(const JSONValue& val, std::stringstream& ss)
 }
 
 std::string encodeJson(const JSONValue& val)
+{
+	std::stringstream ss;
+	encodeJsonValue(val, ss);
+	return ss.str();
+}
+
+std::string encodeJsonLocaleSafe(const JSONValue& val)
 {
 	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
 	std::setlocale(LC_ALL, "C");
