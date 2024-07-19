@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cmath>
 #include <cstdint>
+#include <clocale>
 
 namespace
 {
@@ -404,8 +405,20 @@ JSONValue parseValue(ParseCursor& pc)
 
 JSONValue parseJson(std::string text)
 {
-	ParseCursor pc(std::move(text));
-	return parseValue(pc);
+	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
+	std::setlocale(LC_ALL, "C");
+	try
+	{
+		ParseCursor pc(std::move(text));
+		auto ret = parseValue(pc);
+		std::setlocale(LC_ALL, prev_loc.c_str());
+		return ret;
+	}
+	catch (...)
+	{
+		std::setlocale(LC_ALL, prev_loc.c_str());
+		throw;
+	}
 }
 
 void encodeJsonValue(const JSONValue& val, std::stringstream& ss);
@@ -524,7 +537,18 @@ void encodeJsonValue(const JSONValue& val, std::stringstream& ss)
 
 std::string encodeJson(const JSONValue& val)
 {
-	std::stringstream ss;
-	encodeJsonValue(val, ss);
-	return ss.str();
+	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
+	std::setlocale(LC_ALL, "C");
+	try
+	{
+		std::stringstream ss;
+		encodeJsonValue(val, ss);
+		std::setlocale(LC_ALL, prev_loc.c_str());
+		return ss.str();
+	}
+	catch (...)
+	{
+		std::setlocale(LC_ALL, prev_loc.c_str());
+		throw;
+	}
 }
