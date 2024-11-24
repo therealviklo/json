@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdint>
 #include <clocale>
+#include <iomanip>
+#include <charconv>
 
 namespace
 {
@@ -282,6 +284,10 @@ public:
 				else break;
 			}
 		}
+		else
+		{
+			num += '0';
+		}
 		if (tryParse("."))
 		{
 			num += '.';
@@ -320,8 +326,14 @@ public:
 			// ret *= std::pow(10, negativeExp ? -exponent : exponent);
 		}
 		// return negative ? -ret : ret;
+		double res = 0;
+		const auto fcres = std::from_chars(num.c_str(), num.c_str() + num.length(), res);
+		if (fcres.ec == std::errc::invalid_argument)
+			error("Failed to parse number");
+		if (fcres.ec == std::errc::result_out_of_range)
+			error("Number is out of range");
 		skipWhitespace();
-		return std::strtod(num.c_str(), nullptr);
+		return res;
 	}
 
 	char32_t peekUnicodeChar() const
@@ -409,24 +421,6 @@ JSONValue parseJson(std::string text)
 	return parseValue(pc);
 }
 
-JSONValue parseJsonLocaleSafe(std::string text)
-{
-	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
-	std::setlocale(LC_ALL, "C");
-	try
-	{
-		ParseCursor pc(std::move(text));
-		auto ret = parseValue(pc);
-		std::setlocale(LC_ALL, prev_loc.c_str());
-		return ret;
-	}
-	catch (...)
-	{
-		std::setlocale(LC_ALL, prev_loc.c_str());
-		throw;
-	}
-}
-
 void encodeJsonValue(const JSONValue& val, std::stringstream& ss);
 
 void encodeString(const std::string& str, std::stringstream& ss)
@@ -464,13 +458,10 @@ void encodeNumber(double number, std::stringstream& ss)
 	}
 	else
 	{
-		int size = std::snprintf(nullptr, 0, "%.17g", number);
-		if (size < 1)
-			throw std::runtime_error("snprintf() failed to convert number to text");
-		std::vector<char> buf(size + 1);
-		if (std::snprintf(&buf[0], buf.size(), "%.17g", number) < 1)
-			throw std::runtime_error("snprintf() failed to convert number to text");
-		ss << &buf[0];
+		std::ostringstream numss;
+		numss.imbue(std::locale::classic());
+		numss << std::setprecision(17) << number;
+		ss << numss.str();
 	}
 }
 
@@ -546,22 +537,4 @@ std::string encodeJson(const JSONValue& val)
 	std::stringstream ss;
 	encodeJsonValue(val, ss);
 	return ss.str();
-}
-
-std::string encodeJsonLocaleSafe(const JSONValue& val)
-{
-	const std::string prev_loc = std::setlocale(LC_ALL, nullptr);
-	std::setlocale(LC_ALL, "C");
-	try
-	{
-		std::stringstream ss;
-		encodeJsonValue(val, ss);
-		std::setlocale(LC_ALL, prev_loc.c_str());
-		return ss.str();
-	}
-	catch (...)
-	{
-		std::setlocale(LC_ALL, prev_loc.c_str());
-		throw;
-	}
 }

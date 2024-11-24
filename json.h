@@ -42,6 +42,4 @@ enum struct JSONType
 };
 
 JSONValue parseJson(std::string text);
-JSONValue parseJsonLocaleSafe(std::string text);
 std::string encodeJson(const JSONValue& val);
-std::string encodeJsonLocaleSafe(const JSONValue& val);
